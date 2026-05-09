@@ -3051,7 +3051,7 @@ class RoomController extends AEnvironmentAwareOCSController {
 	 * Required capability: `email-csv-import`
 	 *
 	 * @param bool $testRun When set to true, the file is validated and no email is actually sent nor any participant added to the conversation
-	 * @return DataResponse<Http::STATUS_OK, array{invites: non-negative-int, duplicates: non-negative-int, invalid?: non-negative-int, invalidLines?: list<non-negative-int>, type?: int<-1, 6>}, array{}>|DataResponse<Http::STATUS_BAD_REQUEST, array{error: 'room'|'file'|'header-email'|'header-name'|'rows', message?: string, invites?: non-negative-int, duplicates?: non-negative-int, invalid?: non-negative-int, invalidLines?: list<non-negative-int>, type?: int<-1, 6>}, array{}>
+	 * @return DataResponse<Http::STATUS_OK, array{invites: non-negative-int, duplicates: non-negative-int, invalid?: non-negative-int, invalidLines?: list<non-negative-int>, type?: int<-1, 7>}, array{}>|DataResponse<Http::STATUS_BAD_REQUEST, array{error: 'room'|'file'|'header-email'|'header-name'|'rows', message?: string, invites?: non-negative-int, duplicates?: non-negative-int, invalid?: non-negative-int, invalidLines?: list<non-negative-int>, type?: int<-1, 7>}, array{}>
 	 *
 	 * 200: All entries imported successfully
 	 * 400: Import was not successful. When message is provided the string is in user language and should be displayed as an error.
