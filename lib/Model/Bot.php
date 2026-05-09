@@ -20,12 +20,15 @@ class Bot {
 	public const FEATURE_RESPONSE = 2;
 	public const FEATURE_EVENT = 4;
 	public const FEATURE_REACTION = 8;
+	// TODO: enable once FEATURE_MENTION PR is accepted in spreed
+	// public const FEATURE_MENTION = 16;
 
 	public const FEATURE_LABEL_NONE = 'none';
 	public const FEATURE_LABEL_WEBHOOK = 'webhook';
 	public const FEATURE_LABEL_RESPONSE = 'response';
 	public const FEATURE_LABEL_EVENT = 'event';
 	public const FEATURE_LABEL_REACTION = 'reaction';
+	// public const FEATURE_LABEL_MENTION = 'mention';
 	public const URL_APP_PREFIX = 'nextcloudapp://';
 	public const URL_RESPONSE_ONLY_PREFIX = 'responseonly://';
 
@@ -35,6 +38,7 @@ class Bot {
 		self::FEATURE_RESPONSE => self::FEATURE_LABEL_RESPONSE,
 		self::FEATURE_EVENT => self::FEATURE_LABEL_EVENT,
 		self::FEATURE_REACTION => self::FEATURE_LABEL_REACTION,
+		self::FEATURE_MENTION => self::FEATURE_LABEL_MENTION,
 	];
 
 	public function __construct(

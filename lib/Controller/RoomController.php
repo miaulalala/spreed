@@ -1325,6 +1325,8 @@ class RoomController extends AEnvironmentAwareOCSController {
 						$result['callId'] = $participant->getAttendee()->getCallId();
 					}
 				}
+			} elseif ($participant->getAttendee()->getActorType() === Attendee::ACTOR_BOTS) {
+				$result['displayName'] = $participant->getAttendee()->getDisplayName();
 			}
 
 			$results[$attendeeId] = $result;
@@ -1359,6 +1361,7 @@ class RoomController extends AEnvironmentAwareOCSController {
 		if ($this->room->getType() === Room::TYPE_ONE_TO_ONE
 			|| $this->room->getType() === Room::TYPE_ONE_TO_ONE_FORMER
 			|| $this->room->getType() === Room::TYPE_NOTE_TO_SELF
+			|| $this->room->getType() === Room::TYPE_BOT_CONVERSATION
 			|| $this->room->getObjectType() === Room::OBJECT_TYPE_VIDEO_VERIFICATION) {
 			return new DataResponse(['error' => 'room-type'], Http::STATUS_BAD_REQUEST);
 		}

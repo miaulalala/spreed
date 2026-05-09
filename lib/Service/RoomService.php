@@ -51,6 +51,7 @@ use OCA\Talk\Manager;
 use OCA\Talk\Model\Attachment;
 use OCA\Talk\Model\Attendee;
 use OCA\Talk\Model\BreakoutRoom;
+use OCA\Talk\Model\BotServer;
 use OCA\Talk\Participant;
 use OCA\Talk\ResponseDefinitions;
 use OCA\Talk\Room;
@@ -93,6 +94,33 @@ class RoomService {
 		private readonly IManager $calendarManager,
 		private readonly IUserManager $userManager,
 	) {
+	}
+
+	public function createBotConversation(IUser $actor, BotServer $botServer): Room {
+		$botActorId = Attendee::ACTOR_BOT_PREFIX . $botServer->getUrlHash();
+
+		try {
+			return $this->manager->getBotConversationRoom($actor->getUID(), $botActorId);
+		} catch (RoomNotFoundException) {
+		}
+
+		$room = $this->manager->createRoom(
+			Room::TYPE_BOT_CONVERSATION,
+			$botServer->getName(),
+			objectType: 'bot-conversation',
+			objectId: $botActorId,
+		);
+
+		$this->participantService->addUsers($room, [[
+			'actorType' => Attendee::ACTOR_USERS,
+			'actorId' => $actor->getUID(),
+			'displayName' => $actor->getDisplayName(),
+			'participantType' => Participant::OWNER,
+		]], $actor);
+
+		$this->participantService->addBotParticipant($room, $botServer);
+
+		return $room;
 	}
 
 	/**
@@ -348,7 +376,8 @@ class RoomService {
 	public function setDefaultPermissions(Room $room, int $permissions): void {
 		if ($room->getType() === Room::TYPE_ONE_TO_ONE
 			|| $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER
-			|| $room->getType() === Room::TYPE_NOTE_TO_SELF) {
+			|| $room->getType() === Room::TYPE_NOTE_TO_SELF
+			|| $room->getType() === Room::TYPE_BOT_CONVERSATION) {
 			throw new DefaultPermissionsException(DefaultPermissionsException::REASON_TYPE);
 		}
 
@@ -487,7 +516,7 @@ class RoomService {
 	 * @throws NameException
 	 */
 	public function setName(Room $room, string $newName, ?string $oldName = null, bool $validateType = false): void {
-		if ($validateType && ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER)) {
+		if ($validateType && ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER || $room->getType() === Room::TYPE_BOT_CONVERSATION)) {
 			throw new NameException(NameException::REASON_TYPE);
 		}
 

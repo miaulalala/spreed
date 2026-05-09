@@ -12,6 +12,8 @@ use InvalidArgumentException;
 use OC\EventDispatcher\EventDispatcher;
 use OCA\Talk\Config;
 use OCA\Talk\Events\RoomPasswordVerifyEvent;
+use OCA\Talk\Exceptions\DefaultPermissionsException;
+use OCA\Talk\Exceptions\NameException;
 use OCA\Talk\Exceptions\RoomNotFoundException;
 use OCA\Talk\Manager;
 use OCA\Talk\Model\Attendee;
@@ -418,5 +420,82 @@ class RoomServiceTest extends TestCase {
 		$verificationResult = $service->verifyPassword($room, '4321');
 		$this->assertSame($verificationResult, ['result' => false, 'url' => 'https://test']);
 		$this->assertSame('passy', $room->getPassword());
+	}
+
+	public static function dataSetNameBlockedTypes(): array {
+		return [
+			[Room::TYPE_ONE_TO_ONE],
+			[Room::TYPE_ONE_TO_ONE_FORMER],
+			[Room::TYPE_BOT_CONVERSATION],
+		];
+	}
+
+	#[DataProvider('dataSetNameBlockedTypes')]
+	public function testSetNameThrowsNameExceptionForBlockedTypes(int $type): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getType')
+			->willReturn($type);
+		$room->method('getName')
+			->willReturn('old');
+
+		$this->expectException(NameException::class);
+		$this->service->setName($room, 'new name', 'old', true);
+	}
+
+	public function testSetNameDoesNotThrowWithoutValidateType(): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getType')
+			->willReturn(Room::TYPE_ONE_TO_ONE);
+		$room->method('getName')
+			->willReturn('old');
+		$room->method('getId')
+			->willReturn(0);
+		$room->method('getObjectType')
+			->willReturn('');
+
+		// Should not throw when validateType is false (default)
+		$this->manager->expects($this->any())
+			->method('setName');
+
+		$this->service->setName($room, 'new name', 'old', false);
+		$this->addToAssertionCount(1);
+	}
+
+	public static function dataSetDefaultPermissionsBlockedTypes(): array {
+		return [
+			[Room::TYPE_ONE_TO_ONE],
+			[Room::TYPE_ONE_TO_ONE_FORMER],
+			[Room::TYPE_NOTE_TO_SELF],
+			[Room::TYPE_BOT_CONVERSATION],
+		];
+	}
+
+	#[DataProvider('dataSetDefaultPermissionsBlockedTypes')]
+	public function testSetDefaultPermissionsThrowsForBlockedTypes(int $type): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getType')
+			->willReturn($type);
+
+		$this->expectException(DefaultPermissionsException::class);
+		$this->service->setDefaultPermissions($room, 0);
+	}
+
+	public function testSetDefaultPermissionsSucceedsForGroupRoom(): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getType')
+			->willReturn(Room::TYPE_GROUP);
+		$room->method('getObjectType')
+			->willReturn('');
+		$room->method('getObjectId')
+			->willReturn('');
+
+		$this->manager->expects($this->once())
+			->method('setPermissions')
+			->with($room, 0);
+
+		$this->dispatcher->expects($this->exactly(2))
+			->method('dispatchTyped');
+
+		$this->service->setDefaultPermissions($room, 0);
 	}
 }

@@ -70,6 +70,9 @@ export function useChatMentions(token: Ref<string>): ReturnType {
 			|| possibleMention.source === ATTENDEE.ACTOR_TYPE.TEAMS) {
 			chatMention.icon = 'icon-team-forced-white'
 			chatMention.subline = t('spreed', 'Team')
+		} else if (possibleMention.source === ATTENDEE.ACTOR_TYPE.BOTS) {
+			chatMention.icon = 'icon-user-forced-white'
+			chatMention.subline = t('spreed', 'Bot')
 		} else if (possibleMention.source === ATTENDEE.ACTOR_TYPE.GUESTS) {
 			chatMention.icon = 'icon-user-forced-white'
 			chatMention.subline = t('spreed', 'Guest')

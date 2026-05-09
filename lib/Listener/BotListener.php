@@ -23,6 +23,7 @@ use OCA\Talk\Model\BotConversationMapper;
 use OCA\Talk\Model\BotServer;
 use OCA\Talk\Model\BotServerMapper;
 use OCA\Talk\Service\BotService;
+use OCA\Talk\Service\ParticipantService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
@@ -37,6 +38,7 @@ class BotListener implements IEventListener {
 		private readonly BotServerMapper $botServerMapper,
 		private readonly BotConversationMapper $botConversationMapper,
 		private readonly BotService $botService,
+		private readonly ParticipantService $participantService,
 		private readonly LoggerInterface $logger,
 	) {
 	}
@@ -124,6 +126,7 @@ class BotListener implements IEventListener {
 	protected function handleBotUninstallEvent(BotUninstallEvent $event): void {
 		try {
 			$bot = $this->botServerMapper->findByUrlAndSecret($event->getUrl(), $event->getSecret());
+			$this->participantService->removeAllBotParticipants($bot);
 			$this->botConversationMapper->deleteByBotId($bot->getId());
 			$this->botServerMapper->delete($bot);
 		} catch (DoesNotExistException) {

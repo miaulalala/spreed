@@ -56,6 +56,14 @@
 				</ul>
 			</template>
 
+			<template v-if="addableBots.length !== 0">
+				<NcAppNavigationCaption :name="t('spreed', 'Bots')" />
+				<ParticipantsList
+					:items="addableBots"
+					isSearchResult
+					@click="handleClickParticipant" />
+			</template>
+
 			<template v-if="addableRemotes.length !== 0">
 				<NcAppNavigationCaption :name="t('spreed', 'Add federated users')" />
 				<ParticipantsList
@@ -248,6 +256,10 @@ export default {
 
 		addableCircles() {
 			return this.searchResults.filter((item) => item.source === ATTENDEE.ACTOR_TYPE.CIRCLES)
+		},
+
+		addableBots() {
+			return this.searchResults.filter((item) => item.source === ATTENDEE.ACTOR_TYPE.BOTS)
 		},
 
 		addableRemotes() {

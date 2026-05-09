@@ -34,7 +34,7 @@ export function hasUnreadMentions(conversation: Conversation): boolean {
 	return conversation.unreadMention
 		|| conversation.unreadMentionDirect
 		|| (conversation.unreadMessages > 0
-			&& (conversation.type === CONVERSATION.TYPE.ONE_TO_ONE || conversation.type === CONVERSATION.TYPE.ONE_TO_ONE_FORMER))
+			&& (conversation.type === CONVERSATION.TYPE.ONE_TO_ONE || conversation.type === CONVERSATION.TYPE.ONE_TO_ONE_FORMER || conversation.type === CONVERSATION.TYPE.BOT_CONVERSATION))
 }
 
 /**
@@ -159,6 +159,8 @@ export function getFallbackIconClass(conversation: Conversation, forceFallback: 
 			return 'icon-team'
 		} else if (conversation.attributes & CONVERSATION.ATTRIBUTE.VOICE_ROOM) {
 			return 'icon-voice-room'
+		} else if (conversation.type === CONVERSATION.TYPE.BOT_CONVERSATION) {
+			return 'icon-bot'
 		} else if (conversation.type === CONVERSATION.TYPE.CHANGELOG) {
 			return 'icon-changelog'
 		} else if (conversation.type === CONVERSATION.TYPE.ONE_TO_ONE_FORMER) {

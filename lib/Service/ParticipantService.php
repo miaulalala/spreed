@@ -53,6 +53,7 @@ use OCA\Talk\Manager;
 use OCA\Talk\Model\Attendee;
 use OCA\Talk\Model\AttendeeMapper;
 use OCA\Talk\Model\BreakoutRoom;
+use OCA\Talk\Model\BotServer;
 use OCA\Talk\Model\InvitationList;
 use OCA\Talk\Model\SelectHelper;
 use OCA\Talk\Model\Session;
@@ -2385,6 +2386,40 @@ class ParticipantService {
 	 * @return Participant
 	 * @throws ParticipantNotFoundException When the pin is not valid (has no participant assigned)
 	 */
+	public function addBotParticipant(Room $room, BotServer $botServer): void {
+		$actorId = Attendee::ACTOR_BOT_PREFIX . $botServer->getUrlHash();
+		try {
+			$this->getParticipantByActor($room, Attendee::ACTOR_BOTS, $actorId);
+			// Already exists, update display name in case it changed
+			$attendee = $this->attendeeMapper->findByActor($room->getId(), Attendee::ACTOR_BOTS, $actorId);
+			if ($attendee->getDisplayName() !== $botServer->getName()) {
+				$attendee->setDisplayName($botServer->getName());
+				$this->attendeeMapper->update($attendee);
+			}
+		} catch (ParticipantNotFoundException) {
+			$this->addUsers($room, [[
+				'actorType' => Attendee::ACTOR_BOTS,
+				'actorId' => $actorId,
+				'displayName' => $botServer->getName(),
+				'participantType' => Participant::BOT,
+			]]);
+		}
+	}
+
+	public function removeBotParticipant(Room $room, BotServer $botServer): void {
+		$actorId = Attendee::ACTOR_BOT_PREFIX . $botServer->getUrlHash();
+		try {
+			$participant = $this->getParticipantByActor($room, Attendee::ACTOR_BOTS, $actorId);
+			$this->removeAttendee($room, $participant, AAttendeeRemovedEvent::REASON_REMOVED);
+		} catch (ParticipantNotFoundException) {
+		}
+	}
+
+	public function removeAllBotParticipants(BotServer $botServer): void {
+		$actorId = Attendee::ACTOR_BOT_PREFIX . $botServer->getUrlHash();
+		$this->attendeeMapper->deleteByActorTypeAndActorId(Attendee::ACTOR_BOTS, $actorId);
+	}
+
 	public function getParticipantByActor(Room $room, string $actorType, string $actorId): Participant {
 		if (isset($this->actorCache[$room->getId()][$actorType][$actorId])) {
 			return $this->actorCache[$room->getId()][$actorType][$actorId];
