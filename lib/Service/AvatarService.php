@@ -40,7 +40,7 @@ class AvatarService {
 	}
 
 	public function setAvatarFromRequest(Room $room, ?array $file): void {
-		if ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER) {
+		if ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER || $room->getType() === Room::TYPE_BOT_CONVERSATION) {
 			throw new InvalidArgumentException($this->l->t('One-to-one rooms always need to show the other users avatar'));
 		}
 
@@ -64,7 +64,7 @@ class AvatarService {
 	}
 
 	public function setAvatarFromEmoji(Room $room, string $emoji, ?string $color): void {
-		if ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER) {
+		if ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER || $room->getType() === Room::TYPE_BOT_CONVERSATION) {
 			throw new InvalidArgumentException($this->l->t('One-to-one rooms always need to show the other users avatar'));
 		}
 
@@ -94,7 +94,7 @@ class AvatarService {
 	}
 
 	public function setAvatar(Room $room, \OCP\Image $image): void {
-		if ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER) {
+		if ($room->getType() === Room::TYPE_ONE_TO_ONE || $room->getType() === Room::TYPE_ONE_TO_ONE_FORMER || $room->getType() === Room::TYPE_BOT_CONVERSATION) {
 			throw new InvalidArgumentException($this->l->t('One-to-one rooms always need to show the other users avatar'));
 		}
 		$image->fixOrientation();

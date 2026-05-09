@@ -414,3 +414,54 @@ Feature: chat-2/bots
     And the command output contains the text "Secret:"
     When invoking occ with "talk:bot:create --secret Secret1234567890123456789012345678901234567890 Bot"
     Then the command was successful
+
+  Scenario: List bots available for 1:1 conversations
+    Given invoking occ with "app:disable talk_webhook_demo"
+    And the command was successful
+    And invoking occ with "app:enable talk_webhook_demo"
+    And the command was successful
+    And invoking occ with "talk:bot:list"
+    And the command was successful
+    And read bot ids from OCC
+    # Initially the bot state is no-setup, not STATE_ENABLED
+    When user "participant1" lists bot conversations with 200 (v4)
+    Then the list of available bots excludes "Webhook Demo"
+    # Enable the bot globally
+    And set state enabled for bot "Webhook Demo" via OCC
+      | feature |
+      | none    |
+    When user "participant1" lists bot conversations with 200 (v4)
+    Then the list of available bots includes "Webhook Demo"
+
+  Scenario: Open a 1:1 conversation with a bot (new and existing)
+    Given user "participant2" exists
+    And invoking occ with "app:disable talk_webhook_demo"
+    And the command was successful
+    And invoking occ with "app:enable talk_webhook_demo"
+    And the command was successful
+    And read bot ids from OCC
+    And set state enabled for bot "Webhook Demo" via OCC
+      | feature |
+      | none    |
+    # First call creates the room (201)
+    When user "participant1" opens bot conversation for bot "Webhook Demo" as "bot-room" with 201 (v4)
+    Then user "participant1" is participant of room "bot-room" (v4)
+    And user "participant1" is participant of the following rooms (v4)
+      | id       | type |
+      | bot-room | 7    |
+    # Second call returns the existing room (200)
+    When user "participant1" opens bot conversation for bot "Webhook Demo" as "bot-room" with 200 (v4)
+    # A different user gets their own separate room
+    When user "participant2" opens bot conversation for bot "Webhook Demo" as "bot-room-p2" with 201 (v4)
+    Then user "participant2" is participant of room "bot-room-p2" (v4)
+
+  Scenario: Cannot open bot conversation with disabled bot
+    Given invoking occ with "app:disable talk_webhook_demo"
+    And the command was successful
+    And invoking occ with "app:enable talk_webhook_demo"
+    And the command was successful
+    And read bot ids from OCC
+    And set state no-setup for bot "Webhook Demo" via OCC
+      | feature |
+      | none    |
+    When user "participant1" opens bot conversation for bot "Webhook Demo" as "bot-room" with 404 (v4)
