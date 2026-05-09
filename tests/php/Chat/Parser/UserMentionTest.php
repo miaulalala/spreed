@@ -735,4 +735,136 @@ class UserMentionTest extends TestCase {
 		$this->assertEquals('Only in code `' . $codeBlock . '`', $chatMessage->getMessage());
 		$this->assertEquals($expectedMessageParameters, $chatMessage->getMessageParameters());
 	}
+
+	public function testGetRichMessageWithBotMention(): void {
+		$urlHash = sha1('https://example.com/bot');
+		$actorId = Attendee::ACTOR_BOT_PREFIX . $urlHash;
+
+		$mentions = [
+			['type' => 'user', 'id' => $actorId],
+		];
+		$comment = $this->newComment($mentions);
+
+		$this->userManager->expects($this->never())
+			->method('getDisplayName');
+
+		$attendee = Attendee::fromRow([
+			'actor_type' => Attendee::ACTOR_BOTS,
+			'actor_id' => $actorId,
+			'display_name' => 'Test Bot',
+		]);
+		$botParticipant = $this->createMock(Participant::class);
+		$botParticipant->method('getAttendee')->willReturn($attendee);
+
+		/** @var Room&MockObject $room */
+		$room = $this->createMock(Room::class);
+		$this->participantService->expects($this->once())
+			->method('getParticipantByActor')
+			->with($room, Attendee::ACTOR_BOTS, $actorId)
+			->willReturn($botParticipant);
+
+		/** @var Participant&MockObject $participant */
+		$participant = $this->createMock(Participant::class);
+		/** @var IL10N&MockObject $l */
+		$l = $this->createMock(IL10N::class);
+		$chatMessage = new Message($room, $participant, $comment, $l);
+		$chatMessage->setMessage('Hey @' . $actorId . '!', []);
+
+		self::invokePrivate($this->parser, 'parseMessage', [$chatMessage]);
+
+		$expectedMessageParameters = [
+			'mention-bot1' => [
+				'type' => 'bot',
+				'id' => $actorId,
+				'name' => 'Test Bot',
+				'mention-id' => $actorId,
+			],
+		];
+
+		$this->assertEquals('Hey {mention-bot1}!', $chatMessage->getMessage());
+		$this->assertEquals($expectedMessageParameters, $chatMessage->getMessageParameters());
+	}
+
+	public function testGetRichMessageWithBotMentionNotInRoom(): void {
+		$urlHash = sha1('https://example.com/bot');
+		$actorId = Attendee::ACTOR_BOT_PREFIX . $urlHash;
+
+		$mentions = [
+			['type' => 'user', 'id' => $actorId],
+		];
+		$comment = $this->newComment($mentions);
+
+		$this->userManager->expects($this->never())
+			->method('getDisplayName');
+
+		/** @var Room&MockObject $room */
+		$room = $this->createMock(Room::class);
+		$this->participantService->expects($this->once())
+			->method('getParticipantByActor')
+			->with($room, Attendee::ACTOR_BOTS, $actorId)
+			->willThrowException(new ParticipantNotFoundException());
+
+		/** @var Participant&MockObject $participant */
+		$participant = $this->createMock(Participant::class);
+		/** @var IL10N&MockObject $l */
+		$l = $this->createMock(IL10N::class);
+		$chatMessage = new Message($room, $participant, $comment, $l);
+		$chatMessage->setMessage('Hey @' . $actorId . '!', []);
+
+		self::invokePrivate($this->parser, 'parseMessage', [$chatMessage]);
+
+		$this->assertEquals('Hey @' . $actorId . '!', $chatMessage->getMessage());
+		$this->assertEquals([], $chatMessage->getMessageParameters());
+	}
+
+	public function testGetRichMessageWithBotAndUserMentions(): void {
+		$urlHash = sha1('https://example.com/bot');
+		$botActorId = Attendee::ACTOR_BOT_PREFIX . $urlHash;
+
+		$mentions = [
+			['type' => 'user', 'id' => 'testUser'],
+			['type' => 'user', 'id' => $botActorId],
+		];
+		$comment = $this->newComment($mentions);
+
+		$this->userManager->expects($this->once())
+			->method('getDisplayName')
+			->with('testUser')
+			->willReturn('Test User');
+
+		$this->commentsManager->expects($this->once())
+			->method('resolveDisplayName')
+			->with('user', 'testUser')
+			->willReturn('Test User');
+
+		$attendee = Attendee::fromRow([
+			'actor_type' => Attendee::ACTOR_BOTS,
+			'actor_id' => $botActorId,
+			'display_name' => 'Helper Bot',
+		]);
+		$botParticipant = $this->createMock(Participant::class);
+		$botParticipant->method('getAttendee')->willReturn($attendee);
+
+		/** @var Room&MockObject $room */
+		$room = $this->createMock(Room::class);
+		$this->participantService->expects($this->once())
+			->method('getParticipantByActor')
+			->with($room, Attendee::ACTOR_BOTS, $botActorId)
+			->willReturn($botParticipant);
+
+		/** @var Participant&MockObject $participant */
+		$participant = $this->createMock(Participant::class);
+		/** @var IL10N&MockObject $l */
+		$l = $this->createMock(IL10N::class);
+		$chatMessage = new Message($room, $participant, $comment, $l);
+		$chatMessage->setMessage('@testUser and @' . $botActorId, []);
+
+		self::invokePrivate($this->parser, 'parseMessage', [$chatMessage]);
+
+		$this->assertArrayHasKey('mention-user1', $chatMessage->getMessageParameters());
+		$this->assertArrayHasKey('mention-bot1', $chatMessage->getMessageParameters());
+		$this->assertEquals('user', $chatMessage->getMessageParameters()['mention-user1']['type']);
+		$this->assertEquals('bot', $chatMessage->getMessageParameters()['mention-bot1']['type']);
+		$this->assertEquals('Helper Bot', $chatMessage->getMessageParameters()['mention-bot1']['name']);
+	}
 }

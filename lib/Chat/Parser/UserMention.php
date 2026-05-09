@@ -105,10 +105,22 @@ class UserMention implements IEventListener {
 				$mention['type'] = 'call';
 			}
 
+			$resolvedBotParticipant = null;
 			if ($mention['type'] === 'user') {
-				$userDisplayName = $this->userManager->getDisplayName($mention['id']);
-				if ($userDisplayName === null) {
-					continue;
+				if (str_starts_with($mention['id'], Attendee::ACTOR_BOT_PREFIX)) {
+					try {
+						$resolvedBotParticipant = $this->participantService->getParticipantByActor(
+							$chatMessage->getRoom(), Attendee::ACTOR_BOTS, $mention['id']
+						);
+						$mention['type'] = 'bot';
+					} catch (ParticipantNotFoundException) {
+						continue;
+					}
+				} else {
+					$userDisplayName = $this->userManager->getDisplayName($mention['id']);
+					if ($userDisplayName === null) {
+						continue;
+					}
 				}
 			}
 
@@ -225,6 +237,13 @@ class UserMention implements IEventListener {
 				];
 			} elseif ($mention['type'] === 'team') {
 				$messageParameters[$mentionParameterId] = $this->getCircle($mention['id']);
+			} elseif ($mention['type'] === 'bot') {
+				$messageParameters[$mentionParameterId] = [
+					'type' => 'bot',
+					'id' => $mention['id'],
+					'name' => $resolvedBotParticipant->getAttendee()->getDisplayName(),
+					'mention-id' => $mention['id'],
+				];
 			} else {
 				try {
 					$displayName = $this->commentsManager->resolveDisplayName($mention['type'], $mention['id']);

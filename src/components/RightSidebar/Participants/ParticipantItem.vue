@@ -33,7 +33,7 @@
 			<span class="participant__user" :title="userNameTitle">
 				<span class="participant__user-name">{{ computedName }}</span>
 				<span v-if="showModeratorLabel" class="participant__user-badge">({{ t('spreed', 'moderator') }})</span>
-				<span v-if="isBridgeBotUser" class="participant__user-badge">({{ t('spreed', 'bot') }})</span>
+				<span v-if="isBridgeBotUser || isBotActor" class="participant__user-badge">({{ t('spreed', 'bot') }})</span>
 				<span v-if="isGuestActor || isEmailActor" class="participant__user-badge">({{ t('spreed', 'guest') }})</span>
 				<span v-if="!isSelf && isLobbyEnabled && !canSkipLobby" class="participant__user-badge">({{ t('spreed', 'in the lobby') }})</span>
 			</span>
@@ -483,7 +483,7 @@ export default {
 			if (this.showModeratorLabel) {
 				text += ' (' + t('spreed', 'moderator') + ')'
 			}
-			if (this.isBridgeBotUser) {
+			if (this.isBridgeBotUser || this.isBotActor) {
 				text += ' (' + t('spreed', 'bot') + ')'
 			}
 			if (this.isGuestActor || this.isEmailActor) {
@@ -650,6 +650,10 @@ export default {
 				&& this.participant.actorId === ATTENDEE.BRIDGE_BOT_ID
 		},
 
+		isBotActor() {
+			return this.participant.actorType === ATTENDEE.ACTOR_TYPE.BOTS
+		},
+
 		isSelf() {
 			return this.actorStore.checkIfSelfIsActor(this.participant)
 		},
@@ -731,6 +735,7 @@ export default {
 				&& !this.isSelf
 				&& this.selfIsModerator
 				&& !this.isBridgeBotUser
+				&& !this.isBotActor
 		},
 
 		canBeDemoted() {

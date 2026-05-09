@@ -338,12 +338,17 @@ class RoomFormatter {
 				$roomData['canDeleteConversation'] = $room->getType() !== Room::TYPE_ONE_TO_ONE
 					&& $room->getType() !== Room::TYPE_ONE_TO_ONE_FORMER
 					&& $currentParticipant->hasModeratorPermissions(false);
-				$roomData['canLeaveConversation'] = $room->getType() !== Room::TYPE_NOTE_TO_SELF;
+				$roomData['canLeaveConversation'] = $room->getType() !== Room::TYPE_NOTE_TO_SELF
+					&& $room->getType() !== Room::TYPE_BOT_CONVERSATION;
 
 				if ($this->appConfig->getAppValueBool('delete_one_to_one_conversations')
 					&& in_array($room->getType(), [Room::TYPE_ONE_TO_ONE, Room::TYPE_ONE_TO_ONE_FORMER], true)) {
 					$roomData['canDeleteConversation'] = true;
 					$roomData['canLeaveConversation'] = false;
+				}
+
+				if ($room->getType() === Room::TYPE_BOT_CONVERSATION) {
+					$roomData['canDeleteConversation'] = true;
 				}
 
 				$roomData['canEnableSIP']

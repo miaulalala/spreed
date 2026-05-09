@@ -1107,6 +1107,39 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 		}
 	}
 
+	#[Then('/^user "([^"]*)" lists bot conversations with (\d+) \((v4)\)$/')]
+	public function userListsBotConversations(string $user, int $statusCode, string $apiVersion): void {
+		$this->setCurrentUser($user);
+		$this->sendRequest('GET', '/apps/spreed/api/' . $apiVersion . '/bots');
+		$this->assertStatusCode($this->response, $statusCode);
+	}
+
+	#[Then('/^the list of available bots (includes|excludes) "([^"]*)"$/')]
+	public function theListOfAvailableBotsIncludesOrExcludes(string $includesOrExcludes, string $botName): void {
+		$data = $this->getDataFromResponse($this->response);
+		$names = array_column($data, 'name');
+		if ($includesOrExcludes === 'includes') {
+			Assert::assertContains($botName, $names, "Expected bot '$botName' in list: " . implode(', ', $names));
+		} else {
+			Assert::assertNotContains($botName, $names, "Expected bot '$botName' NOT in list");
+		}
+	}
+
+	#[Then('/^user "([^"]*)" opens bot conversation for bot "([^"]*)" as "([^"]*)" with (\d+) \((v4)\)$/')]
+	public function userOpensBotConversation(string $user, string $botName, string $identifier, int $statusCode, string $apiVersion): void {
+		$this->setCurrentUser($user);
+		$botActorId = 'bot-' . self::$botNameToHash[$botName];
+		$this->sendRequest('POST', '/apps/spreed/api/' . $apiVersion . '/bots/' . $botActorId . '/room');
+		$this->assertStatusCode($this->response, $statusCode);
+
+		if ($statusCode === 200 || $statusCode === 201) {
+			$response = $this->getDataFromResponse($this->response);
+			self::$identifierToToken[$identifier] = $response['token'];
+			self::$identifierToId[$identifier] = $response['id'];
+			self::$tokenToIdentifier[$response['token']] = $identifier;
+		}
+	}
+
 	#[Then('/^user "([^"]*)" creates note-to-self \((v4)\)$/')]
 	public function userCreatesNoteToSelf(string $user, string $apiVersion): void {
 		$this->setCurrentUser($user);

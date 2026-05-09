@@ -186,6 +186,15 @@ class AttendeeMapper extends QBMapper {
 		return $delete->executeStatement();
 	}
 
+	public function deleteByActorTypeAndActorId(string $actorType, string $actorId): int {
+		$delete = $this->db->getQueryBuilder();
+		$delete->delete($this->getTableName())
+			->where($delete->expr()->eq('actor_type', $delete->createNamedParameter($actorType)))
+			->andWhere($delete->expr()->eq('actor_id', $delete->createNamedParameter($actorId)));
+
+		return $delete->executeStatement();
+	}
+
 	public function modifyPermissions(int $roomId, string $mode, int $newState): void {
 		if ($mode === Attendee::PERMISSIONS_MODIFY_SET) {
 			if ($newState !== Attendee::PERMISSIONS_DEFAULT) {

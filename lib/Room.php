@@ -30,6 +30,7 @@ class Room {
 	public const TYPE_CHANGELOG = 4;
 	public const TYPE_ONE_TO_ONE_FORMER = 5;
 	public const TYPE_NOTE_TO_SELF = 6;
+	public const TYPE_BOT_CONVERSATION = 7;
 
 	public const OBJECT_TYPE_EMAIL = 'emails';
 	public const OBJECT_TYPE_EVENT = 'event';

@@ -27,6 +27,7 @@ import {
 	changeListable,
 	changeLobbyState,
 	changeReadOnlyState,
+	createBotConversation,
 	createConversation,
 	createLegacyConversation,
 	deleteConversation,
@@ -1084,6 +1085,22 @@ const actions = {
 			return response.data.ocs.data
 		} catch (error) {
 			console.error('Error creating new one to one conversation: ', error)
+		}
+	},
+
+	/**
+	 * Opens or creates a 1:1 conversation with a bot.
+	 *
+	 * @param {object} context default store context
+	 * @param {string} botActorId actor ID of the bot (bot-{urlhash})
+	 */
+	async createBotConversation(context, botActorId) {
+		try {
+			const response = await createBotConversation(botActorId)
+			await context.dispatch('addConversation', response.data.ocs.data)
+			return response.data.ocs.data
+		} catch (error) {
+			console.error('Error creating bot conversation: ', error)
 		}
 	},
 

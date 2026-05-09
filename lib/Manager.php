@@ -1151,6 +1151,30 @@ class Manager {
 		return $this->createRoomObject($row);
 	}
 
+	public function getBotConversationRoom(string $userId, string $botActorId): Room {
+		$query = $this->db->getQueryBuilder();
+		$helper = new SelectHelper();
+		$helper->selectRoomsTable($query);
+		$query->from('talk_rooms', 'r')
+			->innerJoin('r', 'talk_attendees', 'a', $query->expr()->andX(
+				$query->expr()->eq('a.room_id', 'r.id'),
+				$query->expr()->eq('a.actor_type', $query->createNamedParameter(Attendee::ACTOR_USERS)),
+				$query->expr()->eq('a.actor_id', $query->createNamedParameter($userId)),
+			))
+			->where($query->expr()->eq('r.type', $query->createNamedParameter(Room::TYPE_BOT_CONVERSATION, IQueryBuilder::PARAM_INT)))
+			->andWhere($query->expr()->eq('r.object_id', $query->createNamedParameter($botActorId)));
+
+		$result = $query->executeQuery();
+		$row = $result->fetch();
+		$result->closeCursor();
+
+		if ($row === false || $row['token'] === null) {
+			throw new RoomNotFoundException();
+		}
+
+		return $this->createRoomObject($row);
+	}
+
 	/**
 	 * Makes sure the user is part of a changelog room and returns it
 	 *
@@ -1360,6 +1384,10 @@ class Manager {
 			/** @var RoomService $roomService */
 			$roomService = Server::get(RoomService::class);
 			$roomService->setName($room, $this->getRoomNameByParticipants($room), '');
+		}
+
+		if ($room->getType() === Room::TYPE_BOT_CONVERSATION) {
+			return $room->getName();
 		}
 
 		// Set the room name to the other participant for one-to-one rooms

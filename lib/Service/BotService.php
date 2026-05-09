@@ -37,6 +37,7 @@ use OCP\Http\Client\IResponse;
 use OCP\ICertificateManager;
 use OCP\IConfig;
 use OCP\ISession;
+use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserSession;
 use OCP\L10N\IFactory;
@@ -55,12 +56,14 @@ class BotService {
 		private readonly BotConversationMapper $botConversationMapper,
 		private readonly ThreadService $threadService,
 		private readonly ChatManager $chatManager,
+		private readonly ParticipantService $participantService,
 		private readonly IClientService $clientService,
 		private readonly IConfig $serverConfig,
 		private readonly IUserSession $userSession,
 		private readonly TalkSession $talkSession,
 		private readonly ISession $session,
 		private readonly ISecureRandom $secureRandom,
+		private readonly IURLGenerator $urlGenerator,
 		private readonly IFactory $l10nFactory,
 		private readonly ITimeFactory $timeFactory,
 		private readonly LoggerInterface $logger,
@@ -72,6 +75,10 @@ class BotService {
 	}
 
 	public function afterBotEnabled(BotEnabledEvent $event): void {
+		if ($event->getRoom()->isFederatedConversation()) {
+			return;
+		}
+		$this->participantService->addBotParticipant($event->getRoom(), $event->getBotServer());
 		$this->invokeBots([$event->getBotServer()], $event->getRoom(), null, [
 			'type' => 'Join',
 			'actor' => $this->activityPubHelper->generateApplicationFromBot($event->getBotServer()),
@@ -81,6 +88,10 @@ class BotService {
 	}
 
 	public function afterBotDisabled(BotDisabledEvent $event): void {
+		if ($event->getRoom()->isFederatedConversation()) {
+			return;
+		}
+		$this->participantService->removeBotParticipant($event->getRoom(), $event->getBotServer());
 		$this->invokeBots([$event->getBotServer()], $event->getRoom(), null, [
 			'type' => 'Leave',
 			'actor' => $this->activityPubHelper->generateApplicationFromBot($event->getBotServer()),
@@ -144,6 +155,30 @@ class BotService {
 			'target' => $this->activityPubHelper->generateCollectionFromRoom($event->getRoom()),
 			'published' => $event->getComment()->getCreationDateTime()->format(DATE_ATOM),
 		]);
+
+		$mentionBots = $this->getBotsForToken($event->getRoom()->getToken(), Bot::FEATURE_MENTION);
+		if (!empty($mentionBots)) {
+			$mentionedActorIds = $this->extractMentionedBotActorIds($message->getMessageParameters());
+			if (!empty($mentionedActorIds)) {
+				$mentionedBotServers = array_values(array_filter(
+					array_map(static fn (Bot $bot): BotServer => $bot->getBotServer(), $mentionBots),
+					static fn (BotServer $botServer): bool => in_array(
+						Attendee::ACTOR_BOT_PREFIX . $botServer->getUrlHash(),
+						$mentionedActorIds,
+						true,
+					),
+				));
+				if (!empty($mentionedBotServers)) {
+					$this->invokeBots($mentionedBotServers, $event->getRoom(), $event->getComment(), [
+						'type' => 'Mention',
+						'actor' => $this->activityPubHelper->generatePersonFromAttendee($attendee),
+						'object' => $this->activityPubHelper->generateNote($event->getComment(), $messageData, 'message', $inReplyTo),
+						'target' => $this->activityPubHelper->generateCollectionFromRoom($event->getRoom()),
+						'published' => $event->getComment()->getCreationDateTime()->format(DATE_ATOM),
+					]);
+				}
+			}
+		}
 	}
 
 	public function afterSystemMessageSent(SystemMessageSentEvent $event, MessageParser $messageParser): void {
@@ -238,6 +273,20 @@ class BotService {
 			'target' => $this->activityPubHelper->generateCollectionFromRoom($event->getRoom()),
 			'published' => $event->getReactionMessage()?->getCreationDateTime()->format(DATE_ATOM),
 		]);
+	}
+
+	/**
+	 * @param array<string, mixed> $parameters
+	 * @return string[]
+	 */
+	protected function extractMentionedBotActorIds(array $parameters): array {
+		$actorIds = [];
+		foreach ($parameters as $parameter) {
+			if (is_array($parameter) && ($parameter['type'] ?? '') === 'bot') {
+				$actorIds[] = $parameter['id'];
+			}
+		}
+		return $actorIds;
 	}
 
 	/**

@@ -72,6 +72,8 @@ class SearchPlugin implements ISearchPlugin {
 		$guestAttendees = [];
 		/** @var array<string, string> $teamIds */
 		$teamIds = [];
+		/** @var array<string, string> $botIds actorId => displayName */
+		$botIds = [];
 
 		if ($this->room->getType() === Room::TYPE_ONE_TO_ONE) {
 			// Add potential leavers of one-to-one rooms again.
@@ -95,6 +97,8 @@ class SearchPlugin implements ISearchPlugin {
 					$groupIds[$attendee->getActorId()] = $attendee->getDisplayName();
 				} elseif ($attendee->getActorType() === Attendee::ACTOR_CIRCLES) {
 					$teamIds[$attendee->getActorId()] = $attendee->getDisplayName();
+				} elseif ($attendee->getActorType() === Attendee::ACTOR_BOTS) {
+					$botIds[$attendee->getActorId()] = $attendee->getDisplayName();
 				}
 			}
 		}
@@ -105,6 +109,9 @@ class SearchPlugin implements ISearchPlugin {
 		$this->searchEmails($search, $emailAttendees, $searchResult);
 		$this->searchFederatedUsers($search, $cloudIds, $searchResult);
 		$this->searchTeams($search, $teamIds, $searchResult);
+		if (!$this->room->isFederatedConversation()) {
+			$this->searchBots($search, $botIds, $searchResult);
+		}
 
 		return false;
 	}
@@ -443,6 +450,52 @@ class SearchPlugin implements ISearchPlugin {
 			'value' => [
 				'shareType' => 'team',
 				'shareWith' => 'team/' . $actorId,
+			],
+		];
+	}
+
+	/**
+	 * @param array<string, string> $bots actorId => displayName
+	 */
+	protected function searchBots(string $search, array $bots, ISearchResult $searchResult): void {
+		$search = mb_strtolower($search);
+
+		$type = new SearchResultType(Attendee::ACTOR_BOTS);
+
+		$matches = $exactMatches = [];
+		foreach ($bots as $actorId => $displayName) {
+			if ($displayName === '') {
+				continue;
+			}
+
+			if ($searchResult->hasResult($type, $actorId)) {
+				continue;
+			}
+
+			if ($search === '') {
+				$matches[] = $this->createBotResult($actorId, $displayName);
+				continue;
+			}
+
+			if (mb_strtolower($displayName) === $search) {
+				$exactMatches[] = $this->createBotResult($actorId, $displayName);
+				continue;
+			}
+
+			if (mb_stripos($displayName, $search) !== false) {
+				$matches[] = $this->createBotResult($actorId, $displayName);
+			}
+		}
+
+		$searchResult->addResultSet($type, $matches, $exactMatches);
+	}
+
+	protected function createBotResult(string $actorId, string $name): array {
+		return [
+			'label' => $name,
+			'value' => [
+				'shareType' => Attendee::ACTOR_BOTS,
+				'shareWith' => $actorId,
 			],
 		];
 	}

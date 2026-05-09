@@ -255,6 +255,49 @@ class SearchPluginTest extends TestCase {
 		$this->assertEquals($expected, self::invokePrivate($plugin, 'createGuestResult', [$actorId, $name]));
 	}
 
+	public static function dataCreateBotResult(): array {
+		return [
+			['bot-abc123', 'My Bot', ['label' => 'My Bot', 'value' => ['shareType' => 'bots', 'shareWith' => 'bot-abc123']]],
+			['bot-def456', 'Helper', ['label' => 'Helper', 'value' => ['shareType' => 'bots', 'shareWith' => 'bot-def456']]],
+		];
+	}
+
+	#[DataProvider('dataCreateBotResult')]
+	public function testCreateBotResult(string $actorId, string $name, array $expected): void {
+		$plugin = $this->getPlugin();
+		$this->assertEquals($expected, self::invokePrivate($plugin, 'createBotResult', [$actorId, $name]));
+	}
+
+	public static function dataSearchBots(): array {
+		return [
+			// search, bots (actorId => displayName), expected matches count, expected exact matches count
+			['', [], 0, 0],
+			['', ['bot-abc' => 'My Bot'], 1, 0],
+			['my bot', ['bot-abc' => 'My Bot'], 0, 1],
+			['my', ['bot-abc' => 'My Bot'], 1, 0],
+			['nothing', ['bot-abc' => 'My Bot'], 0, 0],
+			['my', ['bot-abc' => 'My Bot', 'bot-def' => 'My Helper'], 2, 0],
+			['helper', ['bot-abc' => 'My Bot', 'bot-def' => 'My Helper'], 1, 0],
+			// Bots with empty display names are skipped
+			['', ['bot-abc' => ''], 0, 0],
+		];
+	}
+
+	#[DataProvider('dataSearchBots')]
+	public function testSearchBots(string $search, array $bots, int $expectedMatches, int $expectedExact): void {
+		$plugin = $this->getPlugin(['createBotResult']);
+		$plugin->expects($this->any())
+			->method('createBotResult')
+			->willReturnCallback(fn ($actorId, $name) => [$actorId => $name]);
+
+		$searchResult = new \OC\Collaboration\Collaborators\SearchResult();
+		self::invokePrivate($plugin, 'searchBots', [$search, $bots, $searchResult]);
+
+		$actual = $searchResult->asArray();
+		$this->assertCount($expectedMatches, $actual['bots'] ?? []);
+		$this->assertCount($expectedExact, $actual['exact']['bots'] ?? []);
+	}
+
 	public static function dataSearchGroups(): array {
 		return [
 			// $search, $groups, $isGroup, $totalMatches, $totalExactMatches

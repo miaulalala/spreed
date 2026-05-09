@@ -20,6 +20,7 @@ class Participant {
 	public const GUEST = 4;
 	public const USER_SELF_JOINED = 5;
 	public const GUEST_MODERATOR = 6;
+	public const BOT = 7;
 
 	public const FLAG_DISCONNECTED = 0;
 	public const FLAG_IN_CALL = 1;

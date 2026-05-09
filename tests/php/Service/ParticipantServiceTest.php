@@ -12,6 +12,7 @@ use OCA\Talk\Config;
 use OCA\Talk\Federation\BackendNotifier;
 use OCA\Talk\Model\Attendee;
 use OCA\Talk\Model\AttendeeMapper;
+use OCA\Talk\Model\BotServer;
 use OCA\Talk\Model\Session;
 use OCA\Talk\Model\SessionMapper;
 use OCA\Talk\Participant;
@@ -92,6 +93,13 @@ class ParticipantServiceTest extends TestCase {
 		);
 	}
 
+	protected function makeBotServer(string $name, string $urlHash): BotServer {
+		$bot = new BotServer();
+		$bot->setName($name);
+		$bot->setUrlHash($urlHash);
+		return $bot;
+	}
+
 	public function tearDown(): void {
 		try {
 			$attendee = $this->attendeeMapper->findByActor(123456789, Attendee::ACTOR_USERS, 'test');
@@ -100,7 +108,78 @@ class ParticipantServiceTest extends TestCase {
 		} catch (DoesNotExistException) {
 		}
 
+		// Clean up any bot attendees inserted by bot tests
+		try {
+			$attendee = $this->attendeeMapper->findByActor(123456789, Attendee::ACTOR_BOTS, 'bot-testhash');
+			$this->attendeeMapper->delete($attendee);
+		} catch (DoesNotExistException) {
+		}
+
 		parent::tearDown();
+	}
+
+	public function testAddBotParticipantCreatesAttendee(): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getId')->willReturn(123456789);
+		$room->method('getToken')->willReturn('testtoken');
+		$room->method('hasFederatedParticipants')->willReturn(0);
+		$room->method('getLastMessage')->willReturn(null);
+		$room->method('getType')->willReturn(Room::TYPE_GROUP);
+
+		$bot = $this->makeBotServer('Test Bot', 'testhash');
+
+		$this->service->addBotParticipant($room, $bot);
+
+		$attendee = $this->attendeeMapper->findByActor(123456789, Attendee::ACTOR_BOTS, 'bot-testhash');
+		$this->assertEquals('Test Bot', $attendee->getDisplayName());
+		$this->assertEquals(Participant::BOT, $attendee->getParticipantType());
+	}
+
+	public function testAddBotParticipantUpdatesDisplayName(): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getId')->willReturn(123456789);
+		$room->method('getToken')->willReturn('testtoken');
+		$room->method('hasFederatedParticipants')->willReturn(0);
+		$room->method('getLastMessage')->willReturn(null);
+		$room->method('getType')->willReturn(Room::TYPE_GROUP);
+
+		$bot = $this->makeBotServer('Test Bot', 'testhash');
+		$this->service->addBotParticipant($room, $bot);
+
+		// Call again with updated name
+		$renamedBot = $this->makeBotServer('Renamed Bot', 'testhash');
+		$this->service->addBotParticipant($room, $renamedBot);
+
+		$attendee = $this->attendeeMapper->findByActor(123456789, Attendee::ACTOR_BOTS, 'bot-testhash');
+		$this->assertEquals('Renamed Bot', $attendee->getDisplayName());
+	}
+
+	public function testRemoveBotParticipantRemovesAttendee(): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getId')->willReturn(123456789);
+		$room->method('getToken')->willReturn('testtoken');
+		$room->method('hasFederatedParticipants')->willReturn(0);
+		$room->method('getLastMessage')->willReturn(null);
+		$room->method('getType')->willReturn(Room::TYPE_GROUP);
+
+		$bot = $this->makeBotServer('Test Bot', 'testhash');
+		$this->service->addBotParticipant($room, $bot);
+
+		$this->service->removeBotParticipant($room, $bot);
+
+		$this->expectException(DoesNotExistException::class);
+		$this->attendeeMapper->findByActor(123456789, Attendee::ACTOR_BOTS, 'bot-testhash');
+	}
+
+	public function testRemoveBotParticipantIsNoopWhenNotPresent(): void {
+		$room = $this->createMock(Room::class);
+		$room->method('getId')->willReturn(123456789);
+
+		$bot = $this->makeBotServer('Test Bot', 'testhash');
+
+		// Should not throw
+		$this->service->removeBotParticipant($room, $bot);
+		$this->assertTrue(true);
 	}
 
 	public function testGetParticipantsByNotificationLevel(): void {
