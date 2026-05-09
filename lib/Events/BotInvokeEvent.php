@@ -100,7 +100,31 @@ use OCP\EventDispatcher\Event;
  *         name: non-empty-string,
  *     },
  * }
- * @psalm-type InvocationData = ChatMessageData|ReactionMessageData|UndoReactionMessageData|BotManagementData
+ * @psalm-type MentionMessageData = array{
+ *     type: 'Mention',
+ *     actor: array{
+ *         type: 'Person',
+ *         id: non-empty-string,
+ *         name: non-empty-string,
+ *         talkParticipantType: numeric-string,
+ *     },
+ *     object: array{
+ *         type: 'Note',
+ *         id: numeric-string,
+ *         name: string,
+ *         content: non-empty-string,
+ *         mediaType: 'text/markdown'|'text/plain',
+ *         inReplyTo?: ChatMessageParentData,
+ *         threadId?: int,
+ *     },
+ *     target: array{
+ *         type: 'Collection',
+ *         id: non-empty-string,
+ *         name: non-empty-string,
+ *     },
+ *     published: string,
+ * }
+ * @psalm-type InvocationData = ChatMessageData|ReactionMessageData|UndoReactionMessageData|BotManagementData|MentionMessageData
  */
 class BotInvokeEvent extends Event {
 	/** @var list<string> */

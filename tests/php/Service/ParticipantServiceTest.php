@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace OCA\Talk\Tests\php\Service;
 
 use OCA\Talk\Config;
-use OCA\Talk\Exceptions\ParticipantNotFoundException;
 use OCA\Talk\Federation\BackendNotifier;
 use OCA\Talk\Model\Attendee;
 use OCA\Talk\Model\AttendeeMapper;

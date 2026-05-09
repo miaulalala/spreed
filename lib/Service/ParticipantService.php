@@ -52,8 +52,8 @@ use OCA\Talk\GuestManager;
 use OCA\Talk\Manager;
 use OCA\Talk\Model\Attendee;
 use OCA\Talk\Model\AttendeeMapper;
-use OCA\Talk\Model\BreakoutRoom;
 use OCA\Talk\Model\BotServer;
+use OCA\Talk\Model\BreakoutRoom;
 use OCA\Talk\Model\InvitationList;
 use OCA\Talk\Model\SelectHelper;
 use OCA\Talk\Model\Session;
@@ -2379,13 +2379,6 @@ class ParticipantService {
 		return $this->getParticipantFromQuery($query, $room);
 	}
 
-	/**
-	 * @param Room $room
-	 * @param string $actorType
-	 * @param string $actorId
-	 * @return Participant
-	 * @throws ParticipantNotFoundException When the pin is not valid (has no participant assigned)
-	 */
 	public function addBotParticipant(Room $room, BotServer $botServer): void {
 		$actorId = Attendee::ACTOR_BOT_PREFIX . $botServer->getUrlHash();
 		try {

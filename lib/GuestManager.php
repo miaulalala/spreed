@@ -85,7 +85,7 @@ class GuestManager {
 	}
 
 	/**
-	 * @return array{invites: non-negative-int, duplicates: non-negative-int, invalid?: non-negative-int, invalidLines?: list<non-negative-int>, type?: int<-1, 6>}
+	 * @return array{invites: non-negative-int, duplicates: non-negative-int, invalid?: non-negative-int, invalidLines?: list<non-negative-int>, type?: int<-1, 7>}
 	 * @throws GuestImportException
 	 */
 	public function importEmails(Room $room, string $filePath, bool $testRun): array {

@@ -15,6 +15,7 @@ use OCA\Talk\Manager;
 use OCA\Talk\Model\Attendee;
 use OCA\Talk\Model\Bot;
 use OCA\Talk\Model\BotServerMapper;
+use OCA\Talk\ResponseDefinitions;
 use OCA\Talk\Service\ParticipantService;
 use OCA\Talk\Service\RoomFormatter;
 use OCA\Talk\Service\RoomService;
@@ -27,6 +28,9 @@ use OCP\IRequest;
 use OCP\IUser;
 use OCP\IUserManager;
 
+/**
+ * @psalm-import-type TalkRoom from ResponseDefinitions
+ */
 class BotConversationController extends AEnvironmentAwareOCSController {
 	public function __construct(
 		string $appName,
@@ -45,7 +49,7 @@ class BotConversationController extends AEnvironmentAwareOCSController {
 	/**
 	 * List all globally enabled bots available for starting conversations
 	 *
-	 * @return DataResponse<Http::STATUS_OK, list<array{id: int, name: string, description: string}>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<array{id: int, name: string, description: null|string}>, array{}>
 	 *
 	 * 200: List of enabled bots
 	 */
