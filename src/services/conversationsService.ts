@@ -435,15 +435,33 @@ async function getPresets(): getPresetsResponse {
 	return axios.get(generateOcsUrl('apps/spreed/api/v1/presets/room'))
 }
 
+/**
+ * Fetch globally enabled bots available for 1:1 conversations
+ */
+async function fetchBots(): Promise<{ data: { ocs: { data: Array<{ id: number, name: string, description: string }> } } }> {
+	return axios.get(generateOcsUrl('apps/spreed/api/v4/bots'))
+}
+
+/**
+ * Open or create a 1:1 conversation with a bot
+ *
+ * @param botActorId Actor ID of the bot (bot-{urlhash})
+ */
+async function createBotConversation(botActorId: string): getSingleConversationResponse {
+	return axios.post(generateOcsUrl('apps/spreed/api/v4/bots/{botActorId}/room', { botActorId }))
+}
+
 export {
 	addToFavorites,
 	archiveConversation,
 	changeListable,
+	createBotConversation,
 	changeLobbyState,
 	changeReadOnlyState,
 	createConversation,
 	createLegacyConversation,
 	deleteConversation,
+	fetchBots,
 	fetchConversation,
 	fetchConversations,
 	fetchNoteToSelfConversation,

@@ -1011,6 +1011,14 @@ export default {
 					name: 'conversation',
 					params: { token: conversation.token },
 				}).catch((err) => console.debug(`Error while pushing the new conversation's route: ${err}`))
+			} else if (item.source === ATTENDEE.ACTOR_TYPE.BOTS) {
+				// Open or create 1:1 bot conversation directly
+				const conversation = await this.$store.dispatch('createBotConversation', item.id)
+				this.abortSearch()
+				this.$router.push({
+					name: 'conversation',
+					params: { token: conversation.token },
+				}).catch((err) => console.debug(`Error while pushing the new conversation's route: ${err}`))
 			} else {
 				// For other types, show the modal directly
 				this.$refs.newConversationDialog.showModalForItem(item)
